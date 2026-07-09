@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>爬坡力量训练计时器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171c;
+    --surface:#1c2028;
+    --surface2:#242a34;
+    --line:#333a46;
+    --text:#f2ede4;
+    --text-dim:#8b93a1;
+    --work:#ff6b35;
+    --work-dim:#ff6b3522;
+    --rest:#4fb8a5;
+    --rest-dim:#4fb8a522;
+    --roundrest:#8b7cf6;
+    --roundrest-dim:#8b7cf622;
+    --danger:#e35d6a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;overscroll-behavior:none;}
+  body{
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    padding:16px 20px 24px;
+  }
+  .num{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
+
+  /* header */
+  .head{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 14px;}
+  .head .eyebrow{font-size:12px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;}
+  .round-badge{font-size:14px;color:var(--text-dim);background:var(--surface);border:1px solid var(--line);padding:6px 14px;border-radius:20px;}
+  .round-badge b{color:var(--text);font-weight:700;}
+  .icon-btn{background:none;border:none;color:var(--text-dim);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+  .icon-btn:active{background:var(--surface2);}
+  .icon-btn svg{width:20px;height:20px;}
+
+  /* dots within round */
+  .dots{display:flex;gap:8px;justify-content:center;margin-bottom:6px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--line);transition:all .25s;}
+  .dot.done{background:var(--text-dim);}
+  .dot.active{background:var(--work);width:20px;border-radius:4px;}
+
+  /* ring + timer */
+  .ring-wrap{position:relative;width:270px;height:270px;margin:14px auto 6px;}
+  .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:var(--surface2);stroke-width:10;}
+  .ring-fg{fill:none;stroke:var(--work);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .25s linear,stroke .3s;}
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 30px;}
+  .phase-label{font-size:13px;letter-spacing:3px;color:var(--work);font-weight:700;text-transform:uppercase;margin-bottom:4px;}
+  .phase-label.rest{color:var(--rest);}
+  .phase-label.roundrest{color:var(--roundrest);}
+  .time-num{font-size:76px;line-height:1;color:var(--text);}
+  .exercise-name{font-size:20px;font-weight:700;margin-top:6px;}
+  .exercise-reps{font-size:13px;color:var(--text-dim);margin-top:2px;}
+
+  .instruction{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:12px 16px;font-size:13px;line-height:1.6;color:var(--text-dim);margin:14px 0 4px;min-height:20px;
+  }
+  .instruction b{color:var(--text);font-weight:500;}
+
+  .next-up{display:flex;align-items:center;gap:8px;justify-content:center;color:var(--text-dim);font-size:13px;margin-top:10px;}
+  .next-up .tag{background:var(--surface2);color:var(--text-dim);border-radius:20px;padding:2px 10px;font-size:11px;letter-spacing:1px;}
+
+  .spacer{flex:1;}
+
+  /* controls */
+  .controls{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:18px;}
+  .ctrl-side{width:52px;height:52px;border-radius:50%;background:var(--surface);border:1px solid var(--line);color:var(--text);display:flex;align-items:center;justify-content:center;}
+  .ctrl-side:active{background:var(--surface2);}
+  .ctrl-side svg{width:20px;height:20px;}
+  .ctrl-main{width:78px;height:78px;border-radius:50%;background:var(--work);border:none;color:#1a0d05;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px var(--work-dim);}
+  .ctrl-main:active{transform:scale(.96);}
+  .ctrl-main svg{width:30px;height:30px;}
+
+  .sub-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;}
+  .chip{background:var(--surface);border:1px solid var(--line);color:var(--text-dim);font-size:12px;padding:8px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;}
+  .chip:active{background:var(--surface2);}
+  .chip svg{width:14px;height:14px;}
+  .chip.danger{color:var(--danger);border-color:#e35d6a55;}
+  .chip.on{color:var(--work);border-color:var(--work);}
+
+  /* start overlay */
+  .start-screen{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:22px;padding:10px 10px 40px;}
+  .start-title{font-size:26px;font-weight:900;}
+  .start-sub{font-size:14px;color:var(--text-dim);line-height:1.7;max-width:300px;}
+  .plan-preview{width:100%;display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+  .plan-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:left;}
+  .plan-row .idx{font-family:'Bebas Neue';font-size:20px;color:var(--work);width:22px;}
+  .plan-row .info b{display:block;font-size:14px;font-weight:700;}
+  .plan-row .info span{font-size:12px;color:var(--text-dim);}
+  .start-btn{width:100%;background:var(--work);color:#1a0d05;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:700;letter-spacing:1px;margin-top:8px;}
+  .start-btn:active{transform:scale(.98);}
+
+  /* elevation profile */
+  .elev-wrap{margin-top:20px;}
+  .elev-label{font-size:11px;color:var(--text-dim);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase;}
+  .elev-wrap svg{width:100%;height:56px;display:block;}
+
+  .done-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;}
+  .done-screen .big{font-size:30px;font-weight:900;}
+  .done-screen .small{font-size:14px;color:var(--text-dim);}
+
+  .hidden{display:none !important;}
+  .reset-confirm{color:var(--danger) !important;border-color:var(--danger) !important;}
+
+  @media (max-width:360px){
+    .ring-wrap{width:230px;height:230px;}
+    .time-num{font-size:64px;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="head">
+    <span class="eyebrow">爬坡力量训练</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="round-badge" id="roundBadge">轮次 <b>1</b>/4</span>
+      <button class="icon-btn" id="muteBtn" aria-label="静音切换">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- START SCREEN -->
+  <div id="startScreen" class="start-screen">
+    <div>
+      <div class="start-title">5 动作 · 4 轮循环</div>
+      <div class="start-sub">胸肩 · 臀 · 背 · 核心 · 臀腿内侧　组间休息20秒，每轮之间休息2分钟</div>
+    </div>
+    <div class="plan-preview" id="planPreview"></div>
+    <button class="chip" id="testVoiceBtn" style="align-self:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+      测试语音
+    </button>
+    <div id="voiceWarning" class="hidden" style="font-size:12px;color:var(--danger);text-align:center;line-height:1.6;">
+      这台设备不支持语音播报，只能用倒计时和振动/文字提示。
+    </div>
+    <button class="start-btn" id="startBtn">开始训练</button>
+  </div>
+
+  <!-- WORKOUT SCREEN -->
+  <div id="workoutScreen" class="hidden" style="display:flex;flex-direction:column;flex:1;">
+    <div class="dots" id="dots"></div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 200 200">
+        <circle class="ring-bg" cx="100" cy="100" r="88"></circle>
+        <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="88" stroke-dasharray="553" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="ring-center">
+        <div class="phase-label" id="phaseLabel">准备</div>
+        <div class="time-num num" id="timeNum">--</div>
+        <div class="exercise-name" id="exerciseName">即将开始</div>
+        <div class="exercise-reps" id="exerciseReps"></div>
+      </div>
+    </div>
+
+    <div class="instruction" id="instruction"></div>
+
+    <div class="next-up" id="nextUp"></div>
+
+    <div class="spacer"></div>
+
+    <div class="controls">
+      <button class="ctrl-side" id="backBtn" aria-label="上一步">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+      </button>
+      <button class="ctrl-main" id="playBtn" aria-label="开始/暂停">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+      </button>
+      <button class="ctrl-side" id="skipBtn" aria-label="下一步">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+      </button>
+    </div>
+
+    <div class="sub-row">
+      <button class="chip" id="minusBtn">-10秒</button>
+      <button class="chip" id="plusBtn">+10秒</button>
+      <button class="chip danger" id="resetBtn">重置</button>
+    </div>
+
+    <div class="elev-wrap">
+      <div class="elev-label">全程进度</div>
+      <svg id="elevSvg" viewBox="0 0 400 56" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <!-- DONE SCREEN -->
+  <div id="doneScreen" class="hidden done-screen">
+    <div class="big">全部完成 🚴</div>
+    <div class="small">4 轮训练已完成，好好拉伸放松一下</div>
+    <button class="start-btn" id="restartBtn" style="max-width:240px;margin-top:12px;">再来一次</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  var EXERCISES = [
+    { name:"宽距俯卧撑", muscle:"练胸肩", reps:"10-15次",
+      instr:"双手比肩宽，核心收紧，下落时胸口贴地。新手可做跪姿或扶稳固沙发边缘做。",
+      duration:30 },
+    { name:"自重臀桥", muscle:"练臀护膝", reps:"20次",
+      instr:"仰卧屈膝，脚跟着地，发力将臀部顶至躯干与大腿呈直线，顶峰夹紧臀部保持2秒。",
+      duration:40 },
+    { name:"T字飞鸟", muscle:"练背姿", reps:"12-15次",
+      instr:"俯身趴地，双臂侧平举，用力将上背部抬起，感受肩胛骨夹紧。",
+      duration:30 },
+    { name:"平板支撑", muscle:"练核心", reps:"40-60秒",
+      instr:"确保不塌腰，身体呈一条直线。撑不住可改为跪姿平板。",
+      duration:50 },
+    { name:"宽距相扑深蹲", muscle:"练臀腿内侧", reps:"每侧15-20次",
+      instr:"双脚约1.5倍肩宽，脚尖外展，背部挺直，蹲至大腿与地面平行。前膝不超过脚尖。",
+      duration:45 }
+  ];
+  var REST_SHORT = 20;
+  var REST_ROUND = 120;
+  var ROUNDS = 4;
+
+  function buildSchedule(){
+    var s = [];
+    for(var r=1;r<=ROUNDS;r++){
+      for(var i=0;i<EXERCISES.length;i++){
+        s.push({type:'work', round:r, ex:i, duration:EXERCISES[i].duration});
+        if(i < EXERCISES.length-1){
+          s.push({type:'rest', round:r, duration:REST_SHORT});
+        }
+      }
+      if(r < ROUNDS){
+        s.push({type:'roundrest', round:r, duration:REST_ROUND});
+      }
+    }
+    s.push({type:'done'});
+    return s;
+  }
+  var schedule = buildSchedule();
+  var totalWorkPhases = schedule.filter(function(p){return p.type==='work';}).length;
+
+  var idx = 0;
+  var remaining = 0;
+  var phaseDuration = 0;
+  var running = false;
+  var muted = false;
+  var lastTick = null;
+  var announcedCountdown = {};
+  var resetArmed = false;
+  var resetTimer = null;
+  var wakeLock = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var startScreen = $('startScreen'), workoutScreen = $('workoutScreen'), doneScreen = $('doneScreen');
+  var phaseLabel = $('phaseLabel'), timeNum = $('timeNum'), exerciseName = $('exerciseName'), exerciseReps = $('exerciseReps');
+  var instruction = $('instruction'), nextUp = $('nextUp'), dotsWrap = $('dots');
+  var ringFg = $('ringFg');
+  var RING_LEN = 2*Math.PI*88;
+  ringFg.setAttribute('stroke-dasharray', RING_LEN);
+  var playBtn = $('playBtn'), playIcon = $('playIcon');
+  var roundBadge = $('roundBadge');
+
+  function renderPlanPreview(){
+    var wrap = $('planPreview');
+    EXERCISES.forEach(function(e, i){
+      var row = document.createElement('div');
+      row.className = 'plan-row';
+      row.innerHTML = '<div class="idx num">'+(i+1)+'</div><div class="info"><b>'+e.name+' · '+e.muscle+'</b><span>'+e.reps+'</span></div>';
+      wrap.appendChild(row);
+    });
+  }
+  renderPlanPreview();
+
+  var speechReady = ('speechSynthesis' in window);
+  var speechUnlocked = false;
+  var availableVoices = [];
+
+  function refreshVoices(){
+    if(!speechReady) return;
+    try{ availableVoices = window.speechSynthesis.getVoices() || []; }catch(e){}
+  }
+  if(speechReady){
+    refreshVoices();
+    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  }
+
+  function pickVoice(){
+    var zh = availableVoices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('zh') === 0; });
+    return zh || null;
+  }
+
+  function speakNow(text){
+    if(!speechReady) return;
+    try{
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-CN';
+      u.rate = 1;
+      u.volume = 1;
+      var v = pickVoice();
+      if(v) u.voice = v;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  function speak(text){
+    if(muted) return;
+    if(!speechReady) return;
+    try{
+      if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
+        window.speechSynthesis.cancel();
+        setTimeout(function(){ speakNow(text); }, 60);
+      } else {
+        speakNow(text);
+      }
+    }catch(e){}
+  }
+
+  // iOS Safari 在约15秒无操作后会让语音引擎"睡着"，需要定期 pause/resume 保活
+  var keepAliveHandle = null;
+  function startSpeechKeepAlive(){
+    if(!speechReady || keepAliveHandle) return;
+    keepAliveHandle = setInterval(function(){
+      try{
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }catch(e){}
+    }, 4000);
+  }
+  function stopSpeechKeepAlive(){
+    if(keepAliveHandle){ clearInterval(keepAliveHandle); keepAliveHandle = null; }
+  }
+
+  // 语音必须在用户手势（点击）内首次触发才能在 iOS/部分安卓浏览器解锁
+  function unlockSpeech(){
+    if(!speechReady || speechUnlocked) return;
+    speechUnlocked = true;
+    try{
+      var u = new SpeechSynthesisUtterance('语音已开启');
+      u.lang = 'zh-CN';
+      u.volume = 1;
+      var v = pickVoice();
+      if(v) u.voice = v;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  if(!speechReady){
+    var vw = $('voiceWarning');
+    if(vw) vw.classList.remove('hidden');
+    var tb = $('testVoiceBtn');
+    if(tb) tb.classList.add('hidden');
+  }
+
+  var testVoiceBtn = $('testVoiceBtn');
+  if(testVoiceBtn){
+    testVoiceBtn.addEventListener('click', function(){
+      speechUnlocked = true;
+      speakNow('测试语音，一二三，能听到请继续训练');
+    });
+  }
+
+  function fmtTime(sec){
+    sec = Math.max(0, Math.ceil(sec));
+    var m = Math.floor(sec/60);
+    var s = sec%60;
+    if(m>0) return m+':' + (s<10?'0':'')+s;
+    return String(sec);
+  }
+
+  function currentRoundIndex(phase){
+    return phase.round || (schedule[idx] && schedule[idx].round) || 1;
+  }
+
+  function renderDots(phase){
+    dotsWrap.innerHTML = '';
+    if(!phase || phase.type === 'roundrest' || phase.type === 'done') {
+      if(phase && phase.type === 'roundrest'){
+        for(var k=0;k<EXERCISES.length;k++){
+          var d = document.createElement('div');
+          d.className = 'dot done';
+          dotsWrap.appendChild(d);
+        }
+      }
+      return;
+    }
+    for(var i=0;i<EXERCISES.length;i++){
+      var d = document.createElement('div');
+      var cls = 'dot';
+      if(i < phase.ex) cls += ' done';
+      if(i === phase.ex) cls += ' active';
+      d.className = cls;
+      dotsWrap.appendChild(d);
+    }
+  }
+
+  function findNextPreview(fromIdx){
+    for(var j=fromIdx+1;j<schedule.length;j++){
+      var p = schedule[j];
+      if(p.type === 'work') return '下一个：' + EXERCISES[p.ex].name;
+      if(p.type === 'rest') return '下一个：休息 20 秒';
+      if(p.type === 'roundrest') return '下一个：轮间休息 2 分钟';
+      if(p.type === 'done') return '下一个：训练完成';
+    }
+    return '';
+  }
+
+  function buildElevation(){
+    var svg = $('elevSvg');
+    var w = 400, h = 56;
+    var n = schedule.length - 1;
+    var pts = [];
+    for(var i=0;i<=n;i++){
+      var x = (i/n) * (w-10) + 5;
+      var y = h - 8 - (i/n)*(h-20) - 6*Math.sin(i/3.2);
+      pts.push([x,y]);
+    }
+    var d = 'M ' + pts.map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' L ');
+    var areaD = d + ' L ' + (w-5) + ' ' + h + ' L 5 ' + h + ' Z';
+    var ns = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+    var area = document.createElementNS(ns,'path');
+    area.setAttribute('d', areaD);
+    area.setAttribute('fill', '#ff6b3518');
+    svg.appendChild(area);
+    var line = document.createElementNS(ns,'path');
+    line.setAttribute('d', d);
+    line.setAttribute('fill','none');
+    line.setAttribute('stroke','#565f6e');
+    line.setAttribute('stroke-width','2');
+    svg.appendChild(line);
+
+    var roundStartIdx = [];
+    schedule.forEach(function(p, i){
+      if(p.type==='work' && p.ex===0) roundStartIdx.push(i);
+    });
+    roundStartIdx.forEach(function(si, ri){
+      var pt = pts[si];
+      var tick = document.createElementNS(ns,'circle');
+      tick.setAttribute('cx', pt[0]); tick.setAttribute('cy', pt[1]); tick.setAttribute('r', 2.5);
+      tick.setAttribute('fill', '#565f6e');
+      svg.appendChild(tick);
+    });
+
+    var marker = document.createElementNS(ns,'circle');
+    marker.setAttribute('id','elevMarker');
+    marker.setAttribute('r', 5);
+    marker.setAttribute('fill', '#ff6b35');
+    svg.appendChild(marker);
+    window.__elevPts = pts;
+  }
+  buildElevation();
+
+  function updateElevMarker(){
+    var pts = window.__elevPts;
+    if(!pts) return;
+    var p = pts[Math.min(idx, pts.length-1)];
+    var m = $('elevMarker');
+    if(m && p){ m.setAttribute('cx', p[0]); m.setAttribute('cy', p[1]); }
+  }
+
+  function setRing(fraction, colorVar){
+    var offset = RING_LEN * (1 - fraction);
+    ringFg.style.strokeDashoffset = offset;
+    ringFg.style.stroke = colorVar;
+  }
+
+  function renderPhase(phase, announce){
+    renderDots(phase);
+    updateElevMarker();
+    nextUp.textContent = findNextPreview(idx);
+    roundBadge.innerHTML = '轮次 <b>'+ (phase.round || ROUNDS) +'</b>/'+ROUNDS;
+
+    if(phase.type === 'work'){
+      var ex = EXERCISES[phase.ex];
+      phaseLabel.textContent = '训练中';
+      phaseLabel.className = 'phase-label';
+      exerciseName.textContent = ex.name + '（' + ex.muscle + '）';
+      exerciseReps.textContent = ex.reps;
+      instruction.innerHTML = '<b>要点：</b>' + ex.instr;
+      setRing(remaining/phaseDuration, 'var(--work)');
+      if(announce) speak(ex.name + '，' + ex.reps + '。' + ex.instr);
+    } else if(phase.type === 'rest'){
+      phaseLabel.textContent = '休息';
+      phaseLabel.className = 'phase-label rest';
+      exerciseName.textContent = '组间休息';
+      exerciseReps.textContent = '';
+      instruction.innerHTML = '喘口气，调整呼吸，准备下一个动作。';
+      setRing(remaining/phaseDuration, 'var(--rest)');
+      if(announce) speak('休息二十秒');
+    } else if(phase.type === 'roundrest'){
+      phaseLabel.textContent = '轮间休息';
+      phaseLabel.className = 'phase-label roundrest';
+      exerciseName.textContent = '第 ' + phase.round + ' 轮完成';
+      exerciseReps.textContent = '';
+      instruction.innerHTML = '休息两分钟，补水放松，准备开始下一轮。';
+      setRing(remaining/phaseDuration, 'var(--roundrest)');
+      if(announce) speak('第' + phase.round + '轮完成，休息两分钟');
+    }
+    timeNum.textContent = fmtTime(remaining);
+  }
+
+  function goToPhase(newIdx, announce){
+    idx = Math.max(0, Math.min(newIdx, schedule.length-1));
+    var phase = schedule[idx];
+    announcedCountdown = {};
+    if(phase.type === 'done'){
+      finish();
+      return;
+    }
+    phaseDuration = phase.duration;
+    remaining = phase.duration;
+    renderPhase(phase, announce);
+  }
+
+  function finish(){
+    running = false;
+    releaseWakeLock();
+    workoutScreen.classList.add('hidden');
+    doneScreen.classList.remove('hidden');
+    speak('全部完成，辛苦了！');
+  }
+
+  function tick(){
+    if(!running) return;
+    var now = Date.now();
+    var dt = (now - lastTick) / 1000;
+    lastTick = now;
+    remaining -= dt;
+
+    var phase = schedule[idx];
+    if(remaining <= 3.05 && remaining > 0){
+      var sec = Math.ceil(remaining);
+      if(sec <= 3 && sec >= 1 && !announcedCountdown[sec]){
+        announcedCountdown[sec] = true;
+        speak(String(sec));
+      }
+    }
+
+    if(remaining <= 0){
+      goToPhase(idx+1, true);
+    } else {
+      timeNum.textContent = fmtTime(remaining);
+      setRing(remaining/phaseDuration, phase.type==='work' ? 'var(--work)' : (phase.type==='rest' ? 'var(--rest)':'var(--roundrest)'));
+    }
+  }
+
+  var tickHandle = setInterval(tick, 200);
+
+  function requestWakeLock(){
+    if('wakeLock' in navigator){
+      navigator.wakeLock.request('screen').then(function(wl){ wakeLock = wl; }).catch(function(){});
+    }
+  }
+  function releaseWakeLock(){
+    if(wakeLock){ wakeLock.release().catch(function(){}); wakeLock = null; }
+  }
+
+  function setPlaying(v){
+    running = v;
+    lastTick = Date.now();
+    playIcon.innerHTML = v
+      ? '<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>'
+      : '<polygon points="6 3 20 12 6 21 6 3"></polygon>';
+    playIcon.setAttribute('fill','currentColor');
+    if(v){ requestWakeLock(); startSpeechKeepAlive(); } else { releaseWakeLock(); stopSpeechKeepAlive(); }
+  }
+
+  $('startBtn').addEventListener('click', function(){
+    unlockSpeech();
+    startScreen.classList.add('hidden');
+    workoutScreen.classList.remove('hidden');
+    goToPhase(0, true);
+    setPlaying(true);
+  });
+
+  $('restartBtn').addEventListener('click', function(){
+    doneScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    idx = 0;
+  });
+
+  playBtn.addEventListener('click', function(){
+    setPlaying(!running);
+  });
+
+  $('skipBtn').addEventListener('click', function(){
+    goToPhase(idx+1, true);
+  });
+
+  $('backBtn').addEventListener('click', function(){
+    var newIdx = idx-1;
+    while(newIdx > 0 && schedule[newIdx].type === 'done') newIdx--;
+    goToPhase(Math.max(0,newIdx), true);
+  });
+
+  $('plusBtn').addEventListener('click', function(){
+    remaining += 10;
+    phaseDuration += 10;
+    timeNum.textContent = fmtTime(remaining);
+  });
+  $('minusBtn').addEventListener('click', function(){
+    remaining = Math.max(3, remaining - 10);
+    timeNum.textContent = fmtTime(remaining);
+  });
+
+  var resetBtn = $('resetBtn');
+  resetBtn.addEventListener('click', function(){
+    if(!resetArmed){
+      resetArmed = true;
+      resetBtn.textContent = '再点一次确认';
+      resetBtn.classList.add('reset-confirm');
+      resetTimer = setTimeout(function(){
+        resetArmed = false;
+        resetBtn.textContent = '重置';
+        resetBtn.classList.remove('reset-confirm');
+      }, 2500);
+    } else {
+      clearTimeout(resetTimer);
+      resetArmed = false;
+      resetBtn.textContent = '重置';
+      resetBtn.classList.remove('reset-confirm');
+      setPlaying(false);
+      idx = 0;
+      workoutScreen.classList.add('hidden');
+      doneScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+    }
+  });
+
+  var muteBtn = $('muteBtn');
+  muteBtn.addEventListener('click', function(){
+    muted = !muted;
+    muteBtn.style.color = muted ? 'var(--danger)' : 'var(--text-dim)';
+    if(muted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible' && running){
+      requestWakeLock();
+      lastTick = Date.now();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
